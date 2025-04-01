@@ -51,76 +51,196 @@ export default function EarthVisualization({ planetData }) {
     // Create Earth sphere
     const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
     
-    // Create a more realistic Earth material with land and water colors
-    const earthMaterial = new THREE.MeshPhongMaterial({
-      // Using a more natural blue-green color as base
-      color: 0x1a4d7c,
-      shininess: 25,
-      specular: 0x333333,
-      // Add some ambient occlusion for depth
-      aoMapIntensity: 1.0,
-      // Make it slightly reflective like water
-      reflectivity: 0.5
+    // Create a highly detailed and realistic Earth material
+    const earthMaterial = new THREE.MeshStandardMaterial({
+      // Base color (will be overridden by texture)
+      color: 0xffffff,
+      // Make the material more responsive to light
+      roughness: 0.5,
+      metalness: 0.1,
+      // Increase the overall brightness
+      emissive: 0x222222,
+      emissiveIntensity: 0.2,
+      // Enhance surface detail
+      bumpScale: 0.05,
+      // Increase contrast
+      contrast: 1.5,
+      // Enable physically correct lighting
+      physicallyCorrectLights: true
     });
     
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
     
-    // Add stars to the background
-    const starGeometry = new THREE.BufferGeometry();
-    const starMaterial = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.05,
-    });
-
-    const starVertices = [];
-    for (let i = 0; i < 10000; i++) {
-      const x = (Math.random() - 0.5) * 2000;
-      const y = (Math.random() - 0.5) * 2000;
-      const z = (Math.random() - 0.5) * 2000;
-      starVertices.push(x, y, z);
-    }
-
-    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-    const stars = new THREE.Points(starGeometry, starMaterial);
-    scene.add(stars);
+    // Add stars to the background with enhanced visual appeal
+    const createStarField = (count, size, color, distance) => {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = [];
+      const sizes = [];
+      const colors = [];
+      
+      for (let i = 0; i < count; i++) {
+        // Create stars in a spherical distribution around the camera
+        const x = (Math.random() - 0.5) * distance;
+        const y = (Math.random() - 0.5) * distance;
+        const z = (Math.random() - 0.5) * distance;
+        vertices.push(x, y, z);
+        
+        // Random size variation
+        const starSize = Math.random() * size + size * 0.5;
+        sizes.push(starSize);
+        
+        // Color variation
+        const r = color.r + (Math.random() * 0.1 - 0.05);
+        const g = color.g + (Math.random() * 0.1 - 0.05);
+        const b = color.b + (Math.random() * 0.1 - 0.05);
+        colors.push(r, g, b);
+      }
+      
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      
+      const material = new THREE.PointsMaterial({
+        size: size,
+        vertexColors: true,
+        transparent: true,
+        sizeAttenuation: true,
+      });
+      
+      return new THREE.Points(geometry, material);
+    };
+    
+    // Create three layers of stars with different characteristics
+    // Distant stars (small, numerous)
+    const distantStars = createStarField(
+      15000, // More stars
+      0.05,
+      new THREE.Color(0.9, 0.9, 1), // Slightly blue tint
+      2000
+    );
+    scene.add(distantStars);
+    
+    // Mid-distance stars (medium size, some color variation)
+    const midStars = createStarField(
+      5000,
+      0.1,
+      new THREE.Color(1, 0.95, 0.8), // Slightly yellow tint
+      1500
+    );
+    scene.add(midStars);
+    
+    // Bright foreground stars (larger, more colorful)
+    const brightStars = createStarField(
+      1000,
+      0.15,
+      new THREE.Color(0.95, 0.9, 1), // Slightly purple tint
+      1000
+    );
+    scene.add(brightStars);
     
     // Set a timeout to ensure loading state is cleared even if texture loading fails
     const loadingTimeout = setTimeout(() => {
       setLoading(false);
     }, 1500);
     
-    // Ensure the texture is applied correctly and update material settings
+    // Load multiple textures for a highly realistic Earth
     const textureLoader = new THREE.TextureLoader();
-    textureLoader.load(
-      '/land_shallow_topo_2048.jpg',
-      (texture) => {
+    const texturePromises = [];
+    
+    // Load diffuse (color) map
+    const diffusePromise = new Promise((resolve, reject) => {
+      textureLoader.load(
+        '/textures/earth/earth_daymap.jpg',
+        (texture) => {
+          // Enhance texture brightness and contrast
+          texture.colorSpace = THREE.SRGBColorSpace; // Updated from deprecated sRGBEncoding
+          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          earthMaterial.map = texture;
+          earthMaterial.needsUpdate = true;
+          resolve();
+        },
+        undefined,
+        reject
+      );
+    });
+    texturePromises.push(diffusePromise);
+    
+    // Load specular map for shiny areas (oceans, etc.)
+    const specularPromise = new Promise((resolve, reject) => {
+      textureLoader.load(
+        '/textures/earth/earth_specular.jpg',
+        (texture) => {
+          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          earthMaterial.metalnessMap = texture;
+          earthMaterial.roughnessMap = texture;
+          earthMaterial.needsUpdate = true;
+          resolve();
+        },
+        undefined,
+        reject
+      );
+    });
+    texturePromises.push(specularPromise);
+    
+    // Load normal map for terrain detail
+    const normalPromise = new Promise((resolve, reject) => {
+      textureLoader.load(
+        '/textures/earth/earth_normal.jpg',
+        (texture) => {
+          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          earthMaterial.normalMap = texture;
+          earthMaterial.normalScale.set(0.05, 0.05); // Subtle but visible terrain
+          earthMaterial.needsUpdate = true;
+          resolve();
+        },
+        undefined,
+        reject
+      );
+    });
+    texturePromises.push(normalPromise);
+    
+    // Handle all texture loading
+    Promise.all(texturePromises)
+      .then(() => {
         clearTimeout(loadingTimeout);
-        earthMaterial.map = texture;
-        earthMaterial.needsUpdate = true;
         setLoading(false);
-      },
-      undefined,
-      () => {
+      })
+      .catch(() => {
         // On error, revert to default color
         clearTimeout(loadingTimeout);
+        console.error('Failed to load one or more Earth textures');
         setLoading(false);
-      }
-    );
+      });
+    
 
-    // Add ambient light - slightly warmer tone for more natural look
-    const ambientLight = new THREE.AmbientLight(0x404040);
+    // Add very bright ambient light for overall illumination
+    const ambientLight = new THREE.AmbientLight(0x909090); // Much brighter ambient light
     scene.add(ambientLight);
 
-    // Add directional light (sun) - slightly yellow tint like real sunlight
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    // Add strong directional light (sun) with warm color for realistic sunlight
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.0); // Higher intensity
     sunLight.position.set(5, 3, 5);
-    sunLight.color.setHex(0xfff5e0); // Slightly warm sunlight color
+    sunLight.color.setHex(0xfffaf0); // Warm white sunlight color
+    // Add shadows for more realism
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
     scene.add(sunLight);
     
-    // Add a subtle hemisphere light to simulate atmospheric scattering
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.2);
+    // Add a strong hemisphere light to simulate atmospheric scattering
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x6666ff, 0.6); // Increased intensity with blue ground reflection
     scene.add(hemiLight);
+    
+    // Add a stronger point light on the opposite side for rim lighting
+    const backLight = new THREE.PointLight(0x4080ff, 0.8); // Brighter with blue tint
+    backLight.position.set(-5, -3, -5);
+    scene.add(backLight);
+    
+    // Add a subtle fill light to brighten up shadowed areas
+    const fillLight = new THREE.PointLight(0xffffcc, 0.5); // Soft yellow fill light
+    fillLight.position.set(0, -5, 0); // Position below
+    scene.add(fillLight);
 
     // Handle window resize
     const handleResize = () => {
@@ -162,13 +282,29 @@ export default function EarthVisualization({ planetData }) {
       window.removeEventListener('resize', handleResize);
       
       // Clean up scene
+      if (backLight) backLight.dispose();
       scene.clear();
       
       // Dispose geometries and materials
       earthGeometry.dispose();
       earthMaterial.dispose();
-      starGeometry.dispose();
-      starMaterial.dispose();
+      
+      // Dispose star field resources
+      if (distantStars) {
+        distantStars.geometry.dispose();
+        distantStars.material.dispose();
+      }
+      if (midStars) {
+        midStars.geometry.dispose();
+        midStars.material.dispose();
+      }
+      if (brightStars) {
+        brightStars.geometry.dispose();
+        brightStars.material.dispose();
+      }
+      
+      // Dispose of the fill light
+      if (fillLight) fillLight.dispose();
       
       // Dispose renderer
       renderer.dispose();

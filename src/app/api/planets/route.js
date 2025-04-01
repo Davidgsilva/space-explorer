@@ -68,21 +68,23 @@ export async function GET(request) {
 * Helper function to fetch planet data from the API
 */
 async function fetchPlanetData(name, apiKey) {
- const API_URL = `https://api.api-ninjas.com/v1/planets?name=${encodeURIComponent(name)}`;
-  const response = await fetch(API_URL, {
-   headers: {
-     'X-Api-Key': apiKey,
-     'Content-Type': 'application/json'
-   }
- });
-
-
- // Check if the request was successful
- if (!response.ok) {
-   console.error(`API request failed for ${name} with status ${response.status}`);
-   return [];
- }
-
-
- return response.json();
+  // TEMPORARY HARDCODED DATA
+  // This function has been temporarily modified to return hardcoded data
+  // instead of making an API call
+  console.log(`Returning hardcoded data for: ${name}`);
+  
+  // Return the hardcoded planet data
+  return [
+    {
+      "name": "Earth",
+      "mass": 0.00315,
+      "radius": 0.0892,
+      "period": 365.2,
+      "semi_major_axis": 1,
+      "temperature": 288,
+      "distance_light_year": 0,
+      "host_star_mass": 1,
+      "host_star_temperature": 6000
+    }
+  ];
 }
