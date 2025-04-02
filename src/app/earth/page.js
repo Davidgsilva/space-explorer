@@ -38,10 +38,6 @@ export default function EarthPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="bg-black text-white p-4">
-        <h1 className="text-2xl font-bold">Earth 3D Visualization</h1>
-      </header>
-      
       <main className="flex-grow">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -57,10 +53,6 @@ export default function EarthPage() {
           </div>
         )}
       </main>
-      
-      <footer className="bg-black text-white p-4 text-center">
-        <p>Space Explorer - 3D Earth Visualization</p>
-      </footer>
     </div>
   );
 }

@@ -51,26 +51,28 @@ export default function EarthVisualization({ planetData }) {
     // Create Earth sphere
     const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
     
-    // Create a highly detailed and realistic Earth material
+    // Create a highly detailed and realistic Earth material with increased brightness
     const earthMaterial = new THREE.MeshStandardMaterial({
       // Base color (will be overridden by texture)
       color: 0xffffff,
       // Make the material more responsive to light
-      roughness: 0.5,
-      metalness: 0.1,
-      // Increase the overall brightness
-      emissive: 0x222222,
-      emissiveIntensity: 0.2,
+      roughness: 0.4, // Reduced roughness for more shine
+      metalness: 0.15, // Increased metalness for more reflectivity
+      // Increase the overall brightness significantly
+      emissive: 0x333333, // Brighter emissive color
+      emissiveIntensity: 0.3, // Increased emissive intensity
       // Enhance surface detail
       bumpScale: 0.05,
       // Increase contrast
-      contrast: 1.5,
+      contrast: 1.8, // Higher contrast
       // Enable physically correct lighting
       physicallyCorrectLights: true
     });
     
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
+    
+    // Cloud layer removed as requested
     
     // Add stars to the background with enhanced visual appeal
     const createStarField = (count, size, color, distance) => {
@@ -214,33 +216,35 @@ export default function EarthVisualization({ planetData }) {
       });
     
 
-    // Add very bright ambient light for overall illumination
-    const ambientLight = new THREE.AmbientLight(0x909090); // Much brighter ambient light
+    // Add extremely bright ambient light for overall illumination
+    const ambientLight = new THREE.AmbientLight(0xd0d0d0); // Increased brightness for more uniform illumination
     scene.add(ambientLight);
 
-    // Add strong directional light (sun) with warm color for realistic sunlight
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.0); // Higher intensity
+    // Add stronger directional light (sun) with warm color for realistic sunlight
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.5); // Increased intensity
     sunLight.position.set(5, 3, 5);
     sunLight.color.setHex(0xfffaf0); // Warm white sunlight color
-    // Add shadows for more realism
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
+    // No shadow casting
+    sunLight.castShadow = false;
     scene.add(sunLight);
     
     // Add a strong hemisphere light to simulate atmospheric scattering
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x6666ff, 0.6); // Increased intensity with blue ground reflection
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x6666ff, 0.8); // Increased intensity with blue ground reflection
     scene.add(hemiLight);
     
     // Add a stronger point light on the opposite side for rim lighting
-    const backLight = new THREE.PointLight(0x4080ff, 0.8); // Brighter with blue tint
+    const backLight = new THREE.PointLight(0x4080ff, 2.0); // Increased brightness with blue tint
     backLight.position.set(-5, -3, -5);
     scene.add(backLight);
     
-    // Add a subtle fill light to brighten up shadowed areas
-    const fillLight = new THREE.PointLight(0xffffcc, 0.5); // Soft yellow fill light
-    fillLight.position.set(0, -5, 0); // Position below
-    scene.add(fillLight);
+    // Fill light removed to eliminate sun-like illumination effect
+    
+    // Add a more subtle spot light with adjusted position and intensity
+    const spotLight = new THREE.SpotLight(0xffffff, 0.7);
+    spotLight.position.set(10, 5, 10);
+    spotLight.angle = Math.PI / 6;
+    spotLight.penumbra = 0.3;
+    scene.add(spotLight);
 
     // Handle window resize
     const handleResize = () => {
@@ -263,6 +267,8 @@ export default function EarthVisualization({ planetData }) {
       
       // Add slight wobble to simulate Earth's axial tilt
       earth.rotation.x = Math.sin(Date.now() * 0.0000005) * 0.02;
+      
+      // Cloud animation removed
       
       // Update controls if available
       if (controls) controls.update();
@@ -303,8 +309,12 @@ export default function EarthVisualization({ planetData }) {
         brightStars.material.dispose();
       }
       
-      // Dispose of the fill light
-      if (fillLight) fillLight.dispose();
+      // Fill light was removed
+      
+      // Dispose of the spot light
+      if (spotLight) spotLight.dispose();
+      
+      // Cloud disposal code removed
       
       // Dispose renderer
       renderer.dispose();
